@@ -146,9 +146,9 @@
 
 /obj/item/weapon/storage/bag/ore/holding //miners, your messiah has arrived
 	name = "mining satchel of holding"
-	desc = "A revolution in convenience, this satchel allows for infinite ore storage. It's been outfitted with anti-malfunction safety measures."
-	storage_slots = INFINITY
-	max_combined_w_class = INFINITY
+	desc = "A revolution in convenience, this satchel allows for extreme ore storage. It's been outfitted with anti-malfunction safety measures."
+	storage_slots = 1000
+	max_combined_w_class = 1000
 	origin_tech = "bluespace=4;materials=3;engineering=3"
 	icon_state = "satchel_bspace"
 
