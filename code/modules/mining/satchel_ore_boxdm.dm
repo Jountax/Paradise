@@ -36,8 +36,10 @@
 	var/amt_clown = 0
 	var/amt_mime = 0
 	var/amt_bluespace = 0
+	var/amt_total = 0
 
-	for(var/obj/item/weapon/ore/C in contents)
+	for(var/obj/item/weapon/ore/C in contents) && amt_total < 500
+			amt_total++
 		if(istype(C,/obj/item/weapon/ore/diamond))
 			amt_diamond++
 		if(istype(C,/obj/item/weapon/ore/glass))
