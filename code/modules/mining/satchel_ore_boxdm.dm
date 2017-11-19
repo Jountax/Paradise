@@ -38,28 +38,37 @@
 	var/amt_bluespace = 0
 	var/amt_total = 0
 
-	for(var/obj/item/weapon/ore/C in contents) && amt_total < 500
-			amt_total++
-		if(istype(C,/obj/item/weapon/ore/diamond))
+	for(var/obj/item/weapon/ore/C in contents)
+		if(istype(C,/obj/item/weapon/ore/diamond)&& amt_total < 500)
 			amt_diamond++
-		if(istype(C,/obj/item/weapon/ore/glass))
+			amt_total++
+		if(istype(C,/obj/item/weapon/ore/glass)&& amt_total < 500)
 			amt_glass++
-		if(istype(C,/obj/item/weapon/ore/plasma))
+			amt_total++
+		if(istype(C,/obj/item/weapon/ore/plasma)&& amt_total < 500)
 			amt_plasma++
-		if(istype(C,/obj/item/weapon/ore/iron))
+			amt_total++
+		if(istype(C,/obj/item/weapon/ore/iron)&& amt_total < 500)
 			amt_iron++
-		if(istype(C,/obj/item/weapon/ore/silver))
+			amt_total++
+		if(istype(C,/obj/item/weapon/ore/silver&& amt_total < 500
 			amt_silver++
-		if(istype(C,/obj/item/weapon/ore/gold))
+			amt_total++
+		if(istype(C,/obj/item/weapon/ore/gold)&& amt_total < 500)
 			amt_gold++
-		if(istype(C,/obj/item/weapon/ore/uranium))
+			amt_total++
+		if(istype(C,/obj/item/weapon/ore/uranium)&& amt_total < 500)
 			amt_uranium++
-		if(istype(C,/obj/item/weapon/ore/bananium))
+			amt_total++
+		if(istype(C,/obj/item/weapon/ore/bananium)&& amt_total < 500)
 			amt_clown++
-		if(istype(C,/obj/item/weapon/ore/tranquillite))
+			amt_total++
+		if(istype(C,/obj/item/weapon/ore/tranquillite)&& amt_total < 500)
 			amt_mime++
-		if(istype(C,/obj/item/weapon/ore/bluespace_crystal))
+			amt_total++
+		if(istype(C,/obj/item/weapon/ore/bluespace_crystal)&& amt_total < 500)
 			amt_bluespace++
+			amt_total++
 
 	var/dat = text("<b>The contents of the ore box reveal...</b><br>")
 	if(amt_gold)
