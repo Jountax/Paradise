@@ -503,6 +503,19 @@
 		"is cracking their exoskeleton!",
 		"is stabbing themselves with their mandibles!",
 		"is holding their breath!")
+		
+	if(!on_cooldown) // Kidan Ore senses
+		on_cooldown = 1
+		spawn(cooldown)
+			on_cooldown = 0
+		var/turf/t = get_turf(src)
+		var/list/mobs = recursive_mob_check(t, client_check = 1, sight_check = 0, include_radio = 0)
+		if(!mobs.len)
+			return
+		if(meson)
+			mineral_scan_pulse(mobs, t, range)
+		else
+			mineral_scan_pulse_material(mobs, t, range)
 
 /datum/species/slime
 	name = "Slime People"
