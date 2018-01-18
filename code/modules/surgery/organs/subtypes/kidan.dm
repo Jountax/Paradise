@@ -4,7 +4,7 @@
 
 /obj/item/organ/internal/ore_sensor
 	name = "Lithoecholocation Sensor"
-	desc = "A specialized organ similar to the inner ear able to detect minute variations in the density of minerals based on the passage of sound waves through them."
+	desc = "A specialized organ able to detect minute variations in the density of minerals based on the passage of sound waves through them."
 	icon_state = "kid_lantern" // placeholder
 	origin_tech = "biotech=2"
 	w_class = WEIGHT_CLASS_TINY
