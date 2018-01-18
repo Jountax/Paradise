@@ -2,6 +2,15 @@
 	alcohol_intensity = 0.5
 	species = "Kidan"
 
+/obj/item/organ/internal/ore_sensor
+	name = "Lithoecholocation Sensor"
+	desc = "A specialized organ similar to the inner ear able to detect minute variations in the density of minerals based on the passage of sound waves through them."
+	icon_state = "kid_lantern" // placeholder
+	origin_tech = "biotech=2"
+	w_class = WEIGHT_CLASS_TINY
+	parent_organ = "head"
+	slot = "ore_sensor"
+
 #define KIDAN_LANTERN_HUNGERCOST 0.5
 #define KIDAN_LANTERN_MINHUNGER 150
 #define KIDAN_LANTERN_LIGHT 4
