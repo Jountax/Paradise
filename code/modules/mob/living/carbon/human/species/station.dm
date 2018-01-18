@@ -482,6 +482,7 @@
 	//Default styles for created mobs.
 	default_headacc = "Normal Antennae"
 	butt_sprite = "kidan"
+	Ore_Sense = 1
 
 	has_organ = list(
 		"heart" =    /obj/item/organ/internal/heart,
@@ -503,34 +504,6 @@
 		"is cracking their exoskeleton!",
 		"is stabbing themselves with their mandibles!",
 		"is holding their breath!")
-		
-	if(!on_cooldown) // Kidan Ore senses
-		on_cooldown = 1
-		spawn(cooldown)
-			on_cooldown = 0
-		var/turf/t = get_turf(src)
-		var/list/mobs = recursive_mob_check(t, client_check = 1, sight_check = 0, include_radio = 0)
-		if(!mobs.len)
-			return
-		else
-			kidan_ore_senses(mobs, t, range)
-			
-/proc/kidan_ore_senses(list/mobs, turf/T, range = world.view)
-	var/list/minerals = list()
-	for(var/turf/simulated/mineral/M in range(range, T))
-		if(M.scan_state)
-			minerals += M
-	if(minerals.len)
-		for(var/mob/user in mobs)
-			if(user.client)
-				var/client/C = user.client
-				for(var/turf/simulated/mineral/M in minerals)
-					var/turf/F = get_turf(M)
-					var/image/I = image('icons/turf/mining.dmi', loc = F, icon_state = M.scan_state, layer = 18)
-					C.images += I
-					spawn(30)
-						if(C)
-C.images -= I
 
 /datum/species/slime
 	name = "Slime People"
