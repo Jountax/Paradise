@@ -512,10 +512,25 @@
 		var/list/mobs = recursive_mob_check(t, client_check = 1, sight_check = 0, include_radio = 0)
 		if(!mobs.len)
 			return
-		if(meson)
-			mineral_scan_pulse(mobs, t, range)
 		else
-			mineral_scan_pulse_material(mobs, t, range)
+			kidan_ore_senses(mobs, t, range)
+			
+/proc/kidan_ore_senses(list/mobs, turf/T, range = world.view)
+	var/list/minerals = list()
+	for(var/turf/simulated/mineral/M in range(range, T))
+		if(M.scan_state)
+			minerals += M
+	if(minerals.len)
+		for(var/mob/user in mobs)
+			if(user.client)
+				var/client/C = user.client
+				for(var/turf/simulated/mineral/M in minerals)
+					var/turf/F = get_turf(M)
+					var/image/I = image('icons/turf/mining.dmi', loc = F, icon_state = M.scan_state, layer = 18)
+					C.images += I
+					spawn(30)
+						if(C)
+C.images -= I
 
 /datum/species/slime
 	name = "Slime People"
