@@ -482,7 +482,6 @@
 	//Default styles for created mobs.
 	default_headacc = "Normal Antennae"
 	butt_sprite = "kidan"
-	Ore_Sense = 1
 
 	has_organ = list(
 		"heart" =    /obj/item/organ/internal/heart,
@@ -493,6 +492,7 @@
 		"appendix" = /obj/item/organ/internal/appendix,
 		"eyes" =     /obj/item/organ/internal/eyes, //Default darksight of 2.
 		"lantern" =  /obj/item/organ/internal/lantern
+		"ore_sensor" = /obj/item/organ/internal/ore_sensor
 		)
 
 	allowed_consumed_mobs = list(/mob/living/simple_animal/diona)
