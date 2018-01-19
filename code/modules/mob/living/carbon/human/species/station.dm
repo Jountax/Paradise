@@ -491,7 +491,7 @@
 		"brain" =    /obj/item/organ/internal/brain,
 		"appendix" = /obj/item/organ/internal/appendix,
 		"eyes" =     /obj/item/organ/internal/eyes, //Default darksight of 2.
-		"lantern" =  /obj/item/organ/internal/lantern
+		"lantern" =  /obj/item/organ/internal/lantern,
 		"ore_sensor" = /obj/item/organ/internal/ore_sensor
 		)
 
