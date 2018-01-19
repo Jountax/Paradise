@@ -13,8 +13,20 @@
 
 
 /obj/item/organ/internal/ore_sensor/on_life()
+	if(!on_cooldown)
+		on_cooldown = 1
+		spawn(cooldown)
+			on_cooldown = 0
+		var/turf/t = get_turf(src)
+		var/list/mobs = recursive_mob_check(t, client_check = 1, sight_check = 0, include_radio = 0)
+		if(!mobs.len)
+			return
+		else
+			mineral_scan_pulse(mobs, t, range)
+
+/proc/mineral_scan_pulse(list/mobs, turf/T, range = world.view) // shamelessly stolen straight from the mining gear file
 	var/list/minerals = list()
-	for(var/turf/simulated/mineral/M in range(world.view, turf/T))
+	for(var/turf/simulated/mineral/M in range(range, T))
 		if(M.scan_state)
 			minerals += M
 	if(minerals.len)
@@ -27,7 +39,7 @@
 					C.images += I
 					spawn(30)
 						if(C)
-	C.images -= I
+C.images -= I
 
 #define KIDAN_LANTERN_HUNGERCOST 0.5
 #define KIDAN_LANTERN_MINHUNGER 150
