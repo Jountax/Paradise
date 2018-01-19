@@ -14,7 +14,7 @@
 
 /obj/item/organ/internal/ore_sensor/on_life()
 	var/list/minerals = list()
-	for(var/turf/simulated/mineral/M in range(range, T))
+	for(var/turf/simulated/mineral/M in range(world.view, turf/T))
 		if(M.scan_state)
 			minerals += M
 	if(minerals.len)
