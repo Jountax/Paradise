@@ -6,7 +6,7 @@
 	name = "Lithoecholocation Sensor"
 	desc = "A specialized organ able to detect minute variations in the density of minerals based on the passage of sound waves through them."
 	icon_state = "kid_lantern" // placeholder
-	origin_tech = "biotech=2"
+	origin_tech = "biotech=3,engineering=2"
 	w_class = WEIGHT_CLASS_TINY
 	parent_organ = "head"
 	slot = "ore_sensor"
