@@ -13,7 +13,6 @@
 
 
 /obj/item/organ/internal/ore_sensor/on_life()
-	mineral_scan_pulse(mobs, t, range)
 	return
 
 #define KIDAN_LANTERN_HUNGERCOST 0.5
