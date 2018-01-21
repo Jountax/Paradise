@@ -16,7 +16,6 @@
 	for(var/turf/simulated/mineral/M in world)
 		if(M.scan_state)
 			M.icon_state = M.scan_state
-	qdel(src)
 	return
 
 #define KIDAN_LANTERN_HUNGERCOST 0.5
