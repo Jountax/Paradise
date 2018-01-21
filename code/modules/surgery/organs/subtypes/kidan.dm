@@ -13,9 +13,21 @@
 
 
 /obj/item/organ/internal/ore_sensor/on_life()
-	for(var/turf/simulated/mineral/M in world)
+	var/list/minerals = list()
+	for(var/turf/simulated/mineral/M in range(range, T))
 		if(M.scan_state)
-			M.icon_state = M.scan_state
+			minerals += M
+	if(minerals.len)
+		for(var/mob/user in mobs)
+			if(user.client)
+				var/client/C = user.client
+				for(var/turf/simulated/mineral/M in minerals)
+					var/turf/F = get_turf(M)
+					var/image/I = image('icons/turf/mining.dmi', loc = F, icon_state = M.scan_state, layer = 18)
+					C.images += I
+					spawn(30)
+						if(C)
+	C.images -= I
 	return
 
 #define KIDAN_LANTERN_HUNGERCOST 0.5
