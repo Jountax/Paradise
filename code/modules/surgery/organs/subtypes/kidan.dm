@@ -13,6 +13,9 @@
 
 
 /obj/item/organ/internal/ore_sensor/on_life()
+	for(var/turf/simulated/mineral/M in world)
+		if(M.scan_state)
+		M.icon_state = M.scan_state
 	return
 
 #define KIDAN_LANTERN_HUNGERCOST 0.5
