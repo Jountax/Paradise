@@ -35,7 +35,8 @@
 		O.forceMove(src)
 		scan = O
 		ui_interact(user)
-	..()
+		return
+	return ..()
 
 //Someone needs to break down the dat += into chunks instead of long ass lines.
 /obj/machinery/computer/secure_data/attack_hand(mob/user)
@@ -169,41 +170,16 @@
 				screen = SEC_DATA_R_LIST
 			if("criminal")
 				if(active2)
-					var/their_name = active2.fields["name"]
-					var/their_rank = active2.fields["rank"]
 					var/t1
 					if(temp_href[2] == "execute")
 						t1 = copytext(trim(sanitize(input("Explain why they are being executed. Include a list of their crimes, and victims.", "EXECUTION ORDER", null, null) as text)), 1, MAX_MESSAGE_LEN)
 					else
 						t1 = copytext(trim(sanitize(input("Enter Reason:", "Secure. records", null, null) as text)), 1, MAX_MESSAGE_LEN)
-					var/visible_reason
-					if(t1)
-						visible_reason = t1
-					else
+					if(!t1)
 						t1 = "(none)"
-						visible_reason = "<span class='warning'>NO REASON PROVIDED</span>"
-					switch(temp_href[2])
-						if("none")
-							active2.fields["criminal"] = "None"
-						if("arrest")
-							active2.fields["criminal"] = "*Arrest*"
-						if("execute")
-							if((access_magistrate in authcard_access) || (access_armory in authcard_access))
-								active2.fields["criminal"] = "*Execute*"
-								message_admins("[ADMIN_FULLMONTY(usr)] authorized <span class='warning'>EXECUTION</span> for [their_rank] [their_name], with comment: [visible_reason]")
-							else
-								setTemp("<h3 class='bad'>Error: permission denied.</h3>")
-								return 1
-						if("incarcerated")
-							active2.fields["criminal"] = "Incarcerated"
-						if("parolled")
-							active2.fields["criminal"] = "Parolled"
-						if("released")
-							active2.fields["criminal"] = "Released"
-					var/newstatus = active2.fields["criminal"]
-					log_admin("[key_name_admin(usr)] set secstatus of [their_rank] [their_name] to [newstatus], comment: [t1]")
-					active2.fields["comments"] += "Set to [newstatus] by [usr.name] ([rank]) on [current_date_string] [station_time_timestamp()], comment: [t1]"
-					update_all_mob_security_hud()
+					if(!set_criminal_status(usr, active2, temp_href[2], t1, rank, authcard_access))
+						setTemp("<h3 class='bad'>Error: permission denied.</h3>")
+						return 1
 			if("rank")
 				if(active1)
 					active1.fields["rank"] = temp_href[2]
@@ -423,7 +399,7 @@
 			switch(href_list["field"])
 				if("name")
 					if(istype(active1, /datum/data/record))
-						var/t1 = reject_bad_name(input("Please input name:", "Secure. records", active1.fields["name"], null) as text)
+						var/t1 = reject_bad_name(clean_input("Please input name:", "Secure. records", active1.fields["name"], null))
 						if(!t1 || !length(trim(t1)) || ..() || active1 != a1)
 							return 1
 						active1.fields["name"] = t1

@@ -31,7 +31,6 @@ LIGHTERS ARE IN LIGHTERS.DM
 	var/lastHolder = null
 	var/smoketime = 300
 	var/chem_volume = 30
-	species_fit = list("Vox", "Unathi", "Tajaran", "Vulpkanin", "Grey")
 	sprite_sheets = list(
 		"Vox" = 'icons/mob/species/vox/mask.dmi',
 		"Unathi" = 'icons/mob/species/unathi/mask.dmi',
@@ -48,7 +47,7 @@ LIGHTERS ARE IN LIGHTERS.DM
 
 /obj/item/clothing/mask/cigarette/Destroy()
 	QDEL_NULL(reagents)
-	processing_objects -= src
+	STOP_PROCESSING(SSobj, src)
 	return ..()
 
 /obj/item/clothing/mask/cigarette/attack(mob/living/M, mob/living/user, def_zone)
@@ -61,7 +60,8 @@ LIGHTERS ARE IN LIGHTERS.DM
 		return ..()
 
 
-/obj/item/clothing/mask/cigarette/fire_act()
+/obj/item/clothing/mask/cigarette/fire_act(datum/gas_mixture/air, exposed_temperature, exposed_volume, global_overlay = TRUE)
+	..()
 	light()
 
 /obj/item/clothing/mask/cigarette/attackby(obj/item/W as obj, mob/user as mob, params)
@@ -89,7 +89,7 @@ LIGHTERS ARE IN LIGHTERS.DM
 	else if(istype(W, /obj/item/melee/energy/sword/saber))
 		var/obj/item/melee/energy/sword/saber/S = W
 		if(S.active)
-			light("<span class='warning'>[user] swings their [W], barely missing their nose. [user.p_they(TRUE)] light[user.p_s()] [user.p_their()] [name] in the process.</span>")
+			light("<span class='warning'>[user] makes a violent slashing motion, barely missing [user.p_their()] nose as light flashes. [user.p_they(TRUE)] light[user.p_s()] [user.p_their()] [name] with [W] in the process.</span>")
 
 	else if(istype(W, /obj/item/assembly/igniter))
 		light("<span class='notice'>[user] fiddles with [W], and manages to light [user.p_their()] [name].</span>")
@@ -160,7 +160,7 @@ LIGHTERS ARE IN LIGHTERS.DM
 			var/turf/T = get_turf(src)
 			T.visible_message(flavor_text)
 		set_light(2, 0.25, "#E38F46")
-		processing_objects.Add(src)
+		START_PROCESSING(SSobj, src)
 
 
 /obj/item/clothing/mask/cigarette/process()
@@ -195,7 +195,8 @@ LIGHTERS ARE IN LIGHTERS.DM
 	if(reagents && reagents.total_volume)	//	check if it has any reagents at all
 		if(is_being_smoked) // if it's being smoked, transfer reagents to the mob
 			var/mob/living/carbon/C = loc
-			reagents.trans_to(C, REAGENTS_METABOLISM)
+			for (var/datum/reagent/R in reagents.reagent_list)
+				reagents.trans_id_to(C, R.id, max(REAGENTS_METABOLISM / reagents.reagent_list.len, 0.1)) //transfer at least .1 of each chem
 			if(!reagents.total_volume) // There were reagents, but now they're gone
 				to_chat(C, "<span class='notice'>Your [name] loses its flavor.</span>")
 		else // else just remove some of the reagents
@@ -211,7 +212,7 @@ LIGHTERS ARE IN LIGHTERS.DM
 		var/mob/living/M = loc
 		to_chat(M, "<span class='notice'>Your [name] goes out.</span>")
 		M.unEquip(src, 1)		//Force the un-equip so the overlays update
-	processing_objects.Remove(src)
+	STOP_PROCESSING(SSobj, src)
 	qdel(src)
 
 
@@ -231,8 +232,8 @@ LIGHTERS ARE IN LIGHTERS.DM
 	type_butt = /obj/item/cigbutt/roach
 	throw_speed = 0.5
 	item_state = "spliffoff"
-	smoketime = 180
-	chem_volume = 50
+	smoketime = 250
+	chem_volume = 100
 
 /obj/item/clothing/mask/cigarette/rollie/New()
 	..()
@@ -339,7 +340,7 @@ LIGHTERS ARE IN LIGHTERS.DM
 		if(flavor_text)
 			var/turf/T = get_turf(src)
 			T.visible_message(flavor_text)
-		processing_objects.Add(src)
+		START_PROCESSING(SSobj, src)
 
 /obj/item/clothing/mask/cigarette/pipe/process()
 	var/turf/location = get_turf(src)
@@ -353,7 +354,7 @@ LIGHTERS ARE IN LIGHTERS.DM
 			icon_state = icon_off
 			item_state = icon_off
 			M.update_inv_wear_mask(0)
-		processing_objects.Remove(src)
+		STOP_PROCESSING(SSobj, src)
 		return
 	smoke()
 	return
@@ -364,7 +365,7 @@ LIGHTERS ARE IN LIGHTERS.DM
 		lit = 0
 		icon_state = icon_off
 		item_state = icon_off
-		processing_objects.Remove(src)
+		STOP_PROCESSING(SSobj, src)
 		return
 	if(smoketime <= 0)
 		to_chat(user, "<span class='notice'>You refill the pipe with tobacco.</span>")

@@ -20,11 +20,11 @@
 	var/obj/item/possessed_item
 
 /mob/living/simple_animal/possessed_object/examine(mob/user)
-	possessed_item.examine(user)
+	. = possessed_item.examine(user)
 	if(health > (maxHealth / 30))
-		to_chat(usr, "<span class='warning'>[src] appears to be floating without any support!</span>")
+		. += "<span class='warning'>[src] appears to be floating without any support!</span>"
 	else
-		to_chat(usr, "<span class='warning'>[src] appears to be having trouble staying afloat!</span>")
+		. += "<span class='warning'>[src] appears to be having trouble staying afloat!</span>"
 
 
 /mob/living/simple_animal/possessed_object/do_attack_animation(atom/A, visual_effect_icon, used_item, no_effect, end_pixel_y)
@@ -108,7 +108,7 @@
 
 
 /mob/living/simple_animal/possessed_object/IsAdvancedToolUser() // So we can shoot guns (Mostly ourselves), among other things.
-	return 1
+	return TRUE
 
 
 /mob/living/simple_animal/possessed_object/get_access() // If we've possessed an ID card we've got access to lots of fun things!

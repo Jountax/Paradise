@@ -18,7 +18,8 @@ var/const/SAFETY_COOLDOWN = 100
 	var/item_recycle_sound = 'sound/machines/recycler.ogg'
 
 /obj/machinery/recycler/New()
-	AddComponent(/datum/component/material_container, list(MAT_METAL, MAT_GLASS, MAT_PLASMA, MAT_SILVER, MAT_GOLD, MAT_DIAMOND, MAT_URANIUM, MAT_BANANIUM, MAT_TRANQUILLITE, MAT_TITANIUM, MAT_PLASTIC, MAT_BLUESPACE))
+	AddComponent(/datum/component/material_container, list(MAT_METAL, MAT_GLASS, MAT_PLASMA, MAT_SILVER, MAT_GOLD, MAT_DIAMOND, MAT_URANIUM, MAT_BANANIUM, MAT_TRANQUILLITE, MAT_TITANIUM, MAT_PLASTIC, MAT_BLUESPACE), 0,
+				TRUE, null, null, null, TRUE)
 	..()
 	component_parts = list()
 	component_parts += new /obj/item/circuitboard/recycler(null)
@@ -40,10 +41,10 @@ var/const/SAFETY_COOLDOWN = 100
 	amount_produced = min(100, amt_made)
 
 /obj/machinery/recycler/examine(mob/user)
-	..(user)
-	to_chat(user, "The power light is [(stat & NOPOWER) ? "off" : "on"].")
-	to_chat(user, "The safety-mode light is [safety_mode ? "on" : "off"].")
-	to_chat(user, "The safety-sensors status light is [emagged ? "off" : "on"].")
+	. = ..()
+	. += "The power light is [(stat & NOPOWER) ? "off" : "on"]."
+	. += "The safety-mode light is [safety_mode ? "on" : "off"]."
+	. += "The safety-sensors status light is [emagged ? "off" : "on"]."
 
 /obj/machinery/recycler/power_change()
 	..()
@@ -157,7 +158,7 @@ var/const/SAFETY_COOLDOWN = 100
 	L.loc = loc
 
 	if(issilicon(L))
-		playsound(loc, 'sound/items/Welder.ogg', 50, 1)
+		playsound(loc, 'sound/items/welder.ogg', 50, 1)
 	else
 		playsound(loc, 'sound/effects/splat.ogg', 50, 1)
 
@@ -175,7 +176,7 @@ var/const/SAFETY_COOLDOWN = 100
 
 	// Remove and recycle the equipped items
 	if(eat_victim_items)
-		for(var/obj/item/I in L.get_equipped_items())
+		for(var/obj/item/I in L.get_equipped_items(TRUE))
 			if(L.unEquip(I))
 				eat(I, sound = 0)
 

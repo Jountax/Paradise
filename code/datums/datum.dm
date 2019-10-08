@@ -3,8 +3,10 @@
 	var/list/active_timers  //for SStimer
 	var/list/datum_components //for /datum/components
 	var/list/comp_lookup
+	var/list/signal_procs
+	var/signal_enabled = FALSE
+	var/datum_flags = NONE
 	var/var_edited = FALSE //Warranty void if seal is broken
-
 	var/tmp/unique_datum_id = null
 
 #ifdef TESTING
@@ -25,6 +27,9 @@
 		if(timer.spent)
 			continue
 		qdel(timer)
+
+	//BEGIN: ECS SHIT
+	signal_enabled = FALSE
 
 	var/list/dc = datum_components
 	if(dc)
@@ -50,6 +55,10 @@
 				var/datum/component/comp = comps
 				comp.UnregisterSignal(src, sig)
 		comp_lookup = lookup = null
+
+	for(var/target in signal_procs)
+		UnregisterSignal(target, signal_procs[target])
+	//END: ECS SHIT
 
 	return QDEL_HINT_QUEUE
 

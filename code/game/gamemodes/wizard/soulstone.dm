@@ -39,7 +39,7 @@
 	optional = TRUE
 
 /obj/item/soulstone/pickup(mob/living/user)
-	..()
+	. = ..()
 	if(!can_use(user))
 		to_chat(user, "<span class='danger'>An overwhelming feeling of dread comes over you as you pick up the soulstone. It would be wise to be rid of this quickly.</span>")
 		user.Dizzy(120)
@@ -181,13 +181,13 @@
 	desc = "A wicked machine used by those skilled in magical arts. It is inactive"
 
 /obj/structure/constructshell/examine(mob/user)
-	if(..(user, 0))
-		if(iscultist(user) || iswizard(user) || user.stat == DEAD)
-			to_chat(user, "<span class='cult'>A construct shell, used to house bound souls from a soulstone.</span>")
-			to_chat(user, "<span class='cult'>Placing a soulstone with a soul into this shell allows you to produce your choice of the following:</span>")
-			to_chat(user, "<span class='cult'>An <b>Artificer</b>, which can produce <b>more shells and soulstones</b>, as well as fortifications.</span>")
-			to_chat(user, "<span class='cult'>A <b>Wraith</b>, which does high damage and can jaunt through walls, though it is quite fragile.</span>")
-			to_chat(user, "<span class='cult'>A <b>Juggernaut</b>, which is very hard to kill and can produce temporary walls, but is slow.</span>")
+	. = ..()
+	if(in_range(user, src) && (iscultist(user) || iswizard(user) || user.stat == DEAD))
+		. += "<span class='cult'>A construct shell, used to house bound souls from a soulstone.</span>"
+		. += "<span class='cult'>Placing a soulstone with a soul into this shell allows you to produce your choice of the following:</span>"
+		. += "<span class='cult'>An <b>Artificer</b>, which can produce <b>more shells and soulstones</b>, as well as fortifications.</span>"
+		. += "<span class='cult'>A <b>Wraith</b>, which does high damage and can jaunt through walls, though it is quite fragile.</span>"
+		. += "<span class='cult'>A <b>Juggernaut</b>, which is very hard to kill and can produce temporary walls, but is slow.</span>"
 
 /obj/structure/constructshell/attackby(obj/item/O as obj, mob/user as mob, params)
 	if(istype(O, /obj/item/soulstone))
@@ -230,17 +230,20 @@
 				if(T.stat == 0)
 					to_chat(U, "<span class='danger'>Capture failed!</span>: Kill or maim the victim first!")
 				else
-					if(T.client == null)
-						to_chat(U, "<span class='userdanger'>Capture failed!</span>: The soul has already fled its mortal frame. You attempt to bring it back...")
-						C.getCultGhost(T,U)
+					if(!T.client_mobs_in_contents?.len)
+						to_chat(U, "<span class='warning'>They have no soul!</span>")
 					else
-						if(C.contents.len)
-							to_chat(U, "<span class='danger'>Capture failed!</span>: The soul stone is full! Use or free an existing soul to make room.")
+						if(T.client == null)
+							to_chat(U, "<span class='userdanger'>Capture failed!</span>: The soul has already fled its mortal frame. You attempt to bring it back...")
+							C.getCultGhost(T,U)
 						else
-							for(var/obj/item/W in T)
-								T.unEquip(W)
-							C.init_shade(T, U, vic = 1)
-							qdel(T)
+							if(C.contents.len)
+								to_chat(U, "<span class='danger'>Capture failed!</span>: The soul stone is full! Use or free an existing soul to make room.")
+							else
+								for(var/obj/item/W in T)
+									T.unEquip(W)
+								C.init_shade(T, U, vic = 1)
+								qdel(T)
 		if("SHADE")
 			var/mob/living/simple_animal/shade/T = target
 			var/obj/item/soulstone/C = src
@@ -273,11 +276,11 @@
 						Z.key = A.key
 						Z.faction |= "\ref[U]"
 						if(iscultist(U))
-							if(ticker.mode.name == "cult")
-								ticker.mode:add_cultist(Z.mind)
+							if(SSticker.mode.name == "cult")
+								SSticker.mode:add_cultist(Z.mind)
 							else
-								ticker.mode.cult+=Z.mind
-							ticker.mode.update_cult_icons_added(Z.mind)
+								SSticker.mode.cult+=Z.mind
+							SSticker.mode.update_cult_icons_added(Z.mind)
 						qdel(T)
 						to_chat(Z, "<B>You are a Juggernaut. Though slow, your shell can withstand extreme punishment, create shield walls and even deflect energy weapons, and rip apart enemies and walls alike.</B>")
 						to_chat(Z, "<B>You are still bound to serve your creator, follow [U.p_their()] orders and help [U.p_them()] complete [U.p_their()] goals at all costs.</B>")
@@ -289,11 +292,11 @@
 						Z.key = A.key
 						Z.faction |= "\ref[U]"
 						if(iscultist(U))
-							if(ticker.mode.name == "cult")
-								ticker.mode:add_cultist(Z.mind)
+							if(SSticker.mode.name == "cult")
+								SSticker.mode:add_cultist(Z.mind)
 							else
-								ticker.mode.cult+=Z.mind
-							ticker.mode.update_cult_icons_added(Z.mind)
+								SSticker.mode.cult+=Z.mind
+							SSticker.mode.update_cult_icons_added(Z.mind)
 						qdel(T)
 						to_chat(Z, "<B>You are a Wraith. Though relatively fragile, you are fast, deadly, and even able to phase through walls.</B>")
 						to_chat(Z, "<B>You are still bound to serve your creator, follow [U.p_their()] orders and help [U.p_them()] complete [U.p_their()] goals at all costs.</B>")
@@ -305,11 +308,11 @@
 						Z.key = A.key
 						Z.faction |= "\ref[U]"
 						if(iscultist(U))
-							if(ticker.mode.name == "cult")
-								ticker.mode:add_cultist(Z.mind)
+							if(SSticker.mode.name == "cult")
+								SSticker.mode:add_cultist(Z.mind)
 							else
-								ticker.mode.cult+=Z.mind
-							ticker.mode.update_cult_icons_added(Z.mind)
+								SSticker.mode.cult+=Z.mind
+							SSticker.mode.update_cult_icons_added(Z.mind)
 						qdel(T)
 						to_chat(Z, "<B>You are an Artificer. You are incredibly weak and fragile, but you are able to construct fortifications, use magic missile, repair allied constructs (by clicking on them), </B><I>and most important of all create new constructs</I><B> (Use your Artificer spell to summon a new construct shell and Summon Soulstone to create a new soulstone).</B>")
 						to_chat(Z, "<B>You are still bound to serve your creator, follow [U.p_their()] orders and help [U.p_them()] complete [U.p_their()] goals at all costs.</B>")
@@ -326,11 +329,11 @@
 	newstruct.faction |= "\ref[stoner]"
 	newstruct.key = target.key
 	if(stoner && iscultist(stoner) || cultoverride)
-		if(ticker.mode.name == "cult")
-			ticker.mode:add_cultist(newstruct.mind)
+		if(SSticker.mode.name == "cult")
+			SSticker.mode:add_cultist(newstruct.mind)
 		else
-			ticker.mode.cult+=newstruct.mind
-		ticker.mode.update_cult_icons_added(newstruct.mind)
+			SSticker.mode.cult+=newstruct.mind
+		SSticker.mode.update_cult_icons_added(newstruct.mind)
 	if(stoner && iswizard(stoner))
 		to_chat(newstruct, "<B>You are still bound to serve your creator, follow [stoner.p_their()] orders and help [stoner.p_them()] complete [stoner.p_their()] goals at all costs.</B>")
 	else if(stoner && iscultist(stoner))
@@ -357,7 +360,7 @@
 	if(U)
 		S.faction |= "\ref[U]" //Add the master as a faction, allowing inter-mob cooperation
 	if(U && iscultist(U))
-		ticker.mode.add_cultist(S.mind, 0)
+		SSticker.mode.add_cultist(S.mind, 0)
 	S.cancel_camera()
 	name = "soulstone: Shade of [T.real_name]"
 	icon_state = "soulstone2"
@@ -377,7 +380,7 @@
 			break
 
 	if(!chosen_ghost)	//Failing that, we grab a ghost
-		var/list/consenting_candidates = pollCandidates("Would you like to play as a Shade?", "Cultist", null, ROLE_CULTIST, poll_time = 100)
+		var/list/consenting_candidates = pollCandidates("Would you like to play as a Shade?", ROLE_CULTIST, FALSE, poll_time = 100)
 		if(consenting_candidates.len)
 			chosen_ghost = pick(consenting_candidates)
 	if(!T)

@@ -45,11 +45,14 @@
 			var/obj/item/multitool/M = I
 			M.buffer = src
 			to_chat(user, "<span class = 'caution'>You save the data in the [I.name]'s buffer.</span>")
+		return
 
 	if(exchange_parts(user, I))
 		return
 
-	default_deconstruction_crowbar(I)
+	if(default_deconstruction_crowbar(I))
+		return
+	return ..()
 
 
 //CARGO TELEPAD//
@@ -87,6 +90,8 @@
 		new /obj/item/stack/sheet/metal(get_turf(src))
 		new /obj/item/stack/sheet/glass(get_turf(src))
 		qdel(src)
+	else
+		return ..()
 
 ///TELEPAD CALLER///
 /obj/item/telepad_beacon
@@ -128,14 +133,16 @@
 	var/teleporting = 0
 	var/chargecost = 1000
 
+/obj/item/rcs/get_cell()
+	return rcell
+
 /obj/item/rcs/New()
 	..()
 	rcell = new(src)
 
-
 /obj/item/rcs/examine(mob/user)
-	..(user)
-	to_chat(user, "There are [round(rcell.charge/chargecost)] charge\s left.")
+	. = ..()
+	. += "There are [round(rcell.charge/chargecost)] charge\s left."
 
 /obj/item/rcs/Destroy()
 	QDEL_NULL(rcell)

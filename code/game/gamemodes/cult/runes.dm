@@ -18,9 +18,9 @@ To draw a rune, use an arcane tome.
 	anchored = 1
 	icon = 'icons/obj/rune.dmi'
 	icon_state = "1"
+	resistance_flags = FIRE_PROOF | UNACIDABLE | ACID_PROOF
 	var/visibility = 0
 	var/view_range = 7
-	unacidable = 1
 	layer = TURF_LAYER
 
 	var/invocation = "Aiy ele-mayo!" //This is said by cultists when the rune is invoked.
@@ -50,20 +50,20 @@ To draw a rune, use an arcane tome.
 		AI.client.images += blood
 
 /obj/effect/rune/examine(mob/user)
-	..()
+	. = ..()
 	if(iscultist(user) || user.stat == DEAD) //If they're a cultist or a ghost, tell them the effects
-		to_chat(user, "<b>Name:</b> [cultist_name]")
-		to_chat(user, "<b>Effects:</b> [capitalize(cultist_desc)]")
-		to_chat(user, "<b>Required Acolytes:</b> [req_cultists]")
+		. += "<b>Name:</b> [cultist_name]"
+		. += "<b>Effects:</b> [capitalize(cultist_desc)]"
+		. += "<b>Required Acolytes:</b> [req_cultists]"
 		if(req_keyword && keyword)
-			to_chat(user, "<b>Keyword:</b> [keyword]")
+			. += "<b>Keyword:</b> [keyword]"
 
 /obj/effect/rune/attackby(obj/I, mob/user, params)
 	if(istype(I, /obj/item/tome) && iscultist(user))
 		to_chat(user, "<span class='notice'>You carefully erase the [lowertext(cultist_name)] rune.</span>")
 		qdel(src)
 		return
-	else if(istype(I, /obj/item/nullrod))
+	if(istype(I, /obj/item/nullrod))
 		if(iscultist(user))//cultist..what are doing..cultist..staph...
 			user.drop_item()
 			user.visible_message("<span class='warning'>[I] suddenly glows with white light, forcing [user] to drop it in pain!</span>", \
@@ -72,6 +72,7 @@ To draw a rune, use an arcane tome.
 		to_chat(user,"<span class='danger'>You disrupt the magic of [src] with [I].</span>")
 		qdel(src)
 		return
+	return ..()
 
 /obj/effect/rune/attack_hand(mob/living/user)
 	if(!iscultist(user))
@@ -197,7 +198,7 @@ structure_check() searches for nearby cultist structures required for the invoca
 	..()
 	for(var/M in invokers)
 		var/mob/living/L = M
-		to_chat(L, "<span class='cultitalic'><b>You feel your life force draining. [ticker.cultdat.entity_title3] is displeased.</b></span>")
+		to_chat(L, "<span class='cultitalic'><b>You feel your life force draining. [SSticker.cultdat.entity_title3] is displeased.</b></span>")
 	qdel(src)
 
 /mob/proc/null_rod_check() //The null rod, if equipped, will protect the holder from the effects of most runes
@@ -353,7 +354,7 @@ var/list/teleport_runes = list()
 	var/turf/T = get_turf(src)
 
 	for(var/mob/living/M in T.contents)
-		if(!iscultist(M) && !ismindshielded(M) && ishuman(M))
+		if(!iscultist(M) && !ismindshielded(M) && !isgolem(M) && ishuman(M))
 			convertees.Add(M)
 	if(!convertees.len)
 		fail_invoke()
@@ -372,12 +373,12 @@ var/list/teleport_runes = list()
 
 	new_cultist.visible_message("<span class='warning'>[new_cultist] writhes in pain as the markings below them glow a bloody red!</span>", \
 					  			"<span class='cultlarge'><i>AAAAAAAAAAAAAA-</i></span>")
-	ticker.mode.add_cultist(new_cultist.mind, 1)
+	SSticker.mode.add_cultist(new_cultist.mind, 1)
 	new /obj/item/tome(get_turf(src))
 	new_cultist.mind.special_role = "Cultist"
 	to_chat(new_cultist, "<span class='cultitalic'><b>Your blood pulses. Your head throbs. The world goes red. All at once you are aware of a horrible, horrible, truth. The veil of reality has been ripped away \
 	and something evil takes root.</b></span>")
-	to_chat(new_cultist, "<span class='cultitalic'><b>Assist your new compatriots in their dark dealings. Your goal is theirs, and theirs is yours. You serve [ticker.cultdat.entity_title3] above all else. Bring it back.\
+	to_chat(new_cultist, "<span class='cultitalic'><b>Assist your new compatriots in their dark dealings. Your goal is theirs, and theirs is yours. You serve [SSticker.cultdat.entity_title3] above all else. Bring it back.\
 	</b></span>")
 
 //Rite of Tribute: Sacrifices a crew member to Nar-Sie. Places them into a soul shard if they're in their body.
@@ -391,7 +392,7 @@ var/list/teleport_runes = list()
 
 /obj/effect/rune/sacrifice/New()
 	..()
-	cultist_desc = "sacrifices a crew member to [ticker.cultdat.entity_title3]. May place them into a soul shard if their spirit remains in their body."
+	cultist_desc = "sacrifices a crew member to [SSticker.cultdat.entity_title3]. May place them into a soul shard if their spirit remains in their body."
 
 /obj/effect/rune/sacrifice/invoke(var/list/invokers)
 	if(rune_in_use)
@@ -432,9 +433,9 @@ var/list/teleport_runes = list()
 
 /obj/effect/rune/sacrifice/proc/sac(var/list/invokers, mob/living/T)
 	var/sacrifice_fulfilled
-	var/datum/game_mode/cult/cult_mode = ticker.mode
+	var/datum/game_mode/cult/cult_mode = SSticker.mode
 	if(T)
-		if(istype(T, /mob/living/simple_animal/pet/corgi))
+		if(isdog(T)) // Doggos are the best, but not cats
 			for(var/M in invokers)
 				var/mob/living/L = M
 				to_chat(L, "<span class='cultlarge'>\"Even I have standards, such as they are!\"</span>")
@@ -445,7 +446,7 @@ var/list/teleport_runes = list()
 			if(is_sacrifice_target(T.mind))
 				sacrifice_fulfilled = 1
 		new /obj/effect/temp_visual/cult/sac(loc)
-		if(ticker && ticker.mode && ticker.mode.name == "cult")
+		if(SSticker && SSticker.mode && SSticker.mode.name == "cult")
 
 			cult_mode.harvested++
 		for(var/M in invokers)
@@ -471,7 +472,7 @@ var/list/teleport_runes = list()
 			playsound(T, 'sound/effects/EMPulse.ogg', 100, 1)
 			T.dust() //To prevent the MMI from remaining
 		else
-			playsound(T, 'sound/magic/Disintegrate.ogg', 100, 1)
+			playsound(T, 'sound/magic/disintegrate.ogg', 100, 1)
 			T.gib()
 	rune_in_use = 0
 
@@ -494,9 +495,8 @@ var/list/teleport_runes = list()
 
 /obj/effect/rune/narsie/New()
 	..()
-	cultist_name = "Summon [ticker.cultdat.entity_name]"
-	cultist_desc = "tears apart dimensional barriers, calling forth [ticker.cultdat.entity_title3]. Requires 9 invokers."
-
+	cultist_name = "Summon [SSticker.cultdat ? SSticker.cultdat.entity_name : "your god"]"
+	cultist_desc = "tears apart dimensional barriers, calling forth [SSticker.cultdat ? SSticker.cultdat.entity_title3 : "your god"]. Requires 9 invokers."
 
 /obj/effect/rune/narsie/check_icon()
 	return
@@ -508,7 +508,7 @@ var/list/teleport_runes = list()
 	if(used)
 		return
 	var/mob/living/user = invokers[1]
-	var/datum/game_mode/cult/cult_mode = ticker.mode
+	var/datum/game_mode/cult/cult_mode = SSticker.mode
 	if(!(CULT_ELDERGOD in cult_mode.objectives))
 		message_admins("[key_name_admin(user)] tried to summonn an eldritch horror when the objective was wrong")
 		burn_invokers(invokers)
@@ -521,7 +521,7 @@ var/list/teleport_runes = list()
 		return
 	if(!cult_mode.eldergod)
 		for(var/M in invokers)
-			to_chat(M, "<span class='warning'>[ticker.cultdat.entity_name] is already on this plane!</span>")
+			to_chat(M, "<span class='warning'>[SSticker.cultdat.entity_name] is already on this plane!</span>")
 		log_game("Summon god rune failed - already summoned")
 		return
 	//BEGIN THE SUMMONING
@@ -542,14 +542,12 @@ var/list/teleport_runes = list()
 		if(do_after(user, 50, target = src))	//Prevents accidental erasures.
 			log_game("Summon Narsie rune erased by [key_name(user)] with a tome")
 			message_admins("[key_name_admin(user)] erased a Narsie rune with a tome")
-			..()
-			return
-	else
-		if(istype(I, /obj/item/nullrod))	//Begone foul magiks. You cannot hinder me.
-			log_game("Summon Narsie rune erased by [key_name(user)] using a null rod")
-			message_admins("[key_name_admin(user)] erased a Narsie rune with a null rod")
-			..()
-	return
+		return
+	if(istype(I, /obj/item/nullrod))	//Begone foul magiks. You cannot hinder me.
+		log_game("Summon Narsie rune erased by [key_name(user)] using a null rod")
+		message_admins("[key_name_admin(user)] erased a Narsie rune with a null rod")
+		return
+	return ..()
 
 
 
@@ -580,21 +578,19 @@ var/list/teleport_runes = list()
 		if(do_after(user, 50, target = src))	//Prevents accidental erasures.
 			log_game("Summon demon rune erased by [key_name(user)] with a tome")
 			message_admins("[key_name_admin(user)] erased a demon rune with a tome")
-			..()
-			return
-	else
-		if(istype(I, /obj/item/nullrod))	//Begone foul magiks. You cannot hinder me.
-			log_game("Summon demon rune erased by [key_name(user)] using a null rod")
-			message_admins("[key_name_admin(user)] erased a demon rune with a null rod")
-			..()
-	return
+		return
+	if(istype(I, /obj/item/nullrod))	//Begone foul magiks. You cannot hinder me.
+		log_game("Summon demon rune erased by [key_name(user)] using a null rod")
+		message_admins("[key_name_admin(user)] erased a demon rune with a null rod")
+		return
+	return ..()
 
 
 /obj/effect/rune/slaughter/invoke(var/list/invokers)
 	if(used)
 		return
 	var/mob/living/user = invokers[1]
-	var/datum/game_mode/cult/cult_mode = ticker.mode
+	var/datum/game_mode/cult/cult_mode = SSticker.mode
 	if(!(CULT_SLAUGHTER in cult_mode.objectives))
 		message_admins("[key_name_admin(user)] tried to summon demons when the objective was wrong")
 		burn_invokers(invokers)
@@ -728,7 +724,7 @@ var/list/teleport_runes = list()
 	visible_message("<span class='warning'>[src] glows blue for a moment before vanishing.</span>")
 	switch(invokers.len)
 		if(1 to 2)
-			playsound(E, 'sound/items/Welder2.ogg', 25, 1)
+			playsound(E, 'sound/items/welder2.ogg', 25, 1)
 			for(var/M in invokers)
 				to_chat(M, "<span class='warning'>You feel a minute vibration pass through you...</span>")
 		if(3 to 6)
@@ -755,9 +751,9 @@ var/list/teleport_runes = list()
 	var/mob/living/affecting = null
 
 /obj/effect/rune/astral/examine(mob/user)
-	..()
+	. = ..()
 	if(affecting)
-		to_chat(user, "<span class='cultitalic'>A translucent field encases [user] above the rune!</span>")
+		. += "<span class='cultitalic'>A translucent field encases [user] above the rune!</span>"
 
 /obj/effect/rune/astral/can_invoke(mob/living/user)
 	if(rune_in_use)
@@ -827,9 +823,9 @@ var/list/teleport_runes = list()
 	invoke_damage = 2
 
 /obj/effect/rune/wall/examine(mob/user)
-	..()
+	. = ..()
 	if(density)
-		to_chat(user, "<span class='cultitalic'>There is a barely perceptible shimmering of the air above [src].</span>")
+		. += "<span class='cultitalic'>There is a barely perceptible shimmering of the air above [src].</span>"
 
 /obj/effect/rune/wall/invoke(var/list/invokers)
 	var/mob/living/user = invokers[1]
@@ -856,10 +852,10 @@ var/list/teleport_runes = list()
 /obj/effect/rune/summon/invoke(var/list/invokers)
 	var/mob/living/user = invokers[1]
 	var/list/cultists = list()
-	for(var/datum/mind/M in ticker.mode.cult)
+	for(var/datum/mind/M in SSticker.mode.cult)
 		if(!(M.current in invokers) && M.current && M.current.stat != DEAD)
 			cultists |= M.current
-	var/mob/living/cultist_to_summon = input(user, "Who do you wish to call to [src]?", "Followers of [ticker.cultdat.entity_title3]") as null|anything in cultists
+	var/mob/living/cultist_to_summon = input(user, "Who do you wish to call to [src]?", "Followers of [SSticker.cultdat.entity_title3]") as null|anything in cultists
 	if(!Adjacent(user) || !src || QDELETED(src) || user.incapacitated())
 		return
 	if(!cultist_to_summon)
@@ -868,7 +864,7 @@ var/list/teleport_runes = list()
 		log_game("Summon Cultist rune failed - no target")
 		return
 	if(!iscultist(cultist_to_summon))
-		to_chat(user, "<span class='cultitalic'>[cultist_to_summon] is not a follower of [ticker.cultdat.entity_title3]!</span>")
+		to_chat(user, "<span class='cultitalic'>[cultist_to_summon] is not a follower of [SSticker.cultdat.entity_title3]!</span>")
 		fail_invoke()
 		log_game("Summon Cultist rune failed - no target")
 		return
@@ -977,9 +973,9 @@ var/list/teleport_runes = list()
 
 /obj/effect/rune/manifest/New(loc)
 	..()
-	cultist_desc = "manifests a spirit as a servant of [ticker.cultdat.entity_title3]. The invoker must not move from atop the rune, and will take damage for each summoned spirit."
+	cultist_desc = "manifests a spirit as a servant of [SSticker.cultdat.entity_title3]. The invoker must not move from atop the rune, and will take damage for each summoned spirit."
 
-	notify_ghosts("Manifest rune created in [get_area(src)].", 'sound/effects/ghost2.ogg', source = src)
+	notify_ghosts("Manifest rune created in [get_area(src)].", ghost_sound='sound/effects/ghost2.ogg', source = src)
 
 /obj/effect/rune/manifest/can_invoke(mob/living/user)
 	if(ghosts >= ghost_limit)
@@ -1033,10 +1029,10 @@ var/list/teleport_runes = list()
 	N.health = 20
 	N.mouse_opacity = MOUSE_OPACITY_TRANSPARENT
 	new_human.key = ghost_to_spawn.key
-	ticker.mode.add_cultist(new_human.mind, 0)
+	SSticker.mode.add_cultist(new_human.mind, 0)
 	summoned_guys |= new_human
 	ghosts++
-	to_chat(new_human, "<span class='cultitalic'><b>You are a servant of [ticker.cultdat.entity_title3]. You have been made semi-corporeal by the cult of [ticker.cultdat.entity_name], and you are to serve them at all costs.</b></span>")
+	to_chat(new_human, "<span class='cultitalic'><b>You are a servant of [SSticker.cultdat.entity_title3]. You have been made semi-corporeal by the cult of [SSticker.cultdat.entity_name], and you are to serve them at all costs.</b></span>")
 
 	while(user in get_turf(src))
 		if(user.stat)

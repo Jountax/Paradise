@@ -46,10 +46,11 @@ GLOBAL_LIST_INIT(rcd_door_types, list(
 	materials = list(MAT_METAL = 30000)
 	origin_tech = "engineering=4;materials=2"
 	toolspeed = 1
-	usesound = 'sound/items/Deconstruct.ogg'
+	usesound = 'sound/items/deconstruct.ogg'
 	flags_2 = NO_MAT_REDEMPTION_2
 	req_access = list(access_engine)
-
+	armor = list("melee" = 0, "bullet" = 0, "laser" = 0, "energy" = 0, "bomb" = 0, "bio" = 0, "rad" = 0, "fire" = 100, "acid" = 50)
+	resistance_flags = FIRE_PROOF
 	// Important shit
 	var/datum/effect_system/spark_spread/spark_system
 	var/matter = 0
@@ -82,8 +83,8 @@ GLOBAL_LIST_INIT(rcd_door_types, list(
 
 /obj/item/rcd/examine(mob/user)
 	. = ..()
-	to_chat(user, "MATTER: [matter]/[max_matter] matter-units.")
-	to_chat(user, "MODE: [mode].")
+	. += "MATTER: [matter]/[max_matter] matter-units."
+	. += "MODE: [mode]."
 
 /obj/item/rcd/Destroy()
 	QDEL_NULL(spark_system)
@@ -255,6 +256,8 @@ GLOBAL_LIST_INIT(rcd_door_types, list(
 			var/turf/AT = get_turf(A)
 			AT.ChangeTurf(/turf/simulated/floor/plating)
 			return TRUE
+		to_chat(user, "<span class='warning'>ERROR! Not enough matter in unit to construct this floor!</span>")
+		playsound(loc, 'sound/machines/click.ogg', 50, 1)
 		return FALSE
 
 	if(isfloorturf(A))
@@ -268,27 +271,39 @@ GLOBAL_LIST_INIT(rcd_door_types, list(
 				var/turf/AT = A
 				AT.ChangeTurf(/turf/simulated/wall)
 				return TRUE
+			return FALSE
+		to_chat(user, "<span class='warning'>ERROR! Not enough matter in unit to construct this wall!</span>")
+		playsound(loc, 'sound/machines/click.ogg', 50, 1)
 		return FALSE
+	to_chat(user, "<span class='warning'>ERROR! Location unsuitable for wall construction!</span>")
+	playsound(loc, 'sound/machines/click.ogg', 50, 1)
 	return FALSE
 
 /obj/item/rcd/proc/mode_airlock(atom/A, mob/user)
-	if(isfloorturf(A) && checkResource(10, user))
-		to_chat(user, "Building Airlock...")
-		playsound(loc, 'sound/machines/click.ogg', 50, 1)
-		if(do_after(user, 50 * toolspeed, target = A))
-			if(locate(/obj/machinery/door/airlock) in A.contents)
+	if(isfloorturf(A))
+		if(checkResource(10, user))
+			to_chat(user, "Building Airlock...")
+			playsound(loc, 'sound/machines/click.ogg', 50, 1)
+			if(do_after(user, 50 * toolspeed, target = A))
+				if(locate(/obj/machinery/door/airlock) in A.contents)
+					return FALSE
+				if(!useResource(10, user))
+					return FALSE
+				playsound(loc, usesound, 50, 1)
+				var/obj/machinery/door/airlock/T = new door_type(A)
+				T.name = door_name
+				T.autoclose = TRUE
+				if(one_access)
+					T.req_one_access = door_accesses.Copy()
+				else
+					T.req_access = door_accesses.Copy()
 				return FALSE
-			if(!useResource(10, user))
-				return FALSE
-			playsound(loc, usesound, 50, 1)
-			var/obj/machinery/door/airlock/T = new door_type(A)
-			T.name = door_name
-			T.autoclose = TRUE
-			if(one_access)
-				T.req_one_access = door_accesses.Copy()
-			else
-				T.req_access = door_accesses.Copy()
 			return FALSE
+		to_chat(user, "<span class='warning'>ERROR! Not enough matter in unit to construct this airlock!</span>")
+		playsound(loc, 'sound/machines/click.ogg', 50, 1)
+		return FALSE
+	to_chat(user, "<span class='warning'>ERROR! Location unsuitable for airlock construction!</span>")
+	playsound(loc, 'sound/machines/click.ogg', 50, 1)
 	return FALSE
 
 /obj/item/rcd/proc/mode_decon(atom/A, mob/user)
@@ -305,6 +320,9 @@ GLOBAL_LIST_INIT(rcd_door_types, list(
 				var/turf/AT = A
 				AT.ChangeTurf(/turf/simulated/floor/plating)
 				return TRUE
+			return FALSE
+		to_chat(user, "<span class='warning'>ERROR! Not enough matter in unit to deconstruct this wall!</span>")
+		playsound(loc, 'sound/machines/click.ogg', 50, 1)
 		return FALSE
 
 	if(isfloorturf(A))
@@ -316,8 +334,11 @@ GLOBAL_LIST_INIT(rcd_door_types, list(
 					return FALSE
 				playsound(loc, usesound, 50, 1)
 				var/turf/AT = A
-				AT.ChangeTurf(/turf/space)
+				AT.ChangeTurf(AT.baseturf)
 				return TRUE
+			return FALSE
+		to_chat(user, "<span class='warning'>ERROR! Not enough matter in unit to deconstruct this floor!</span>")
+		playsound(loc, 'sound/machines/click.ogg', 50, 1)
 		return FALSE
 
 	if(istype(A, /obj/machinery/door/airlock))
@@ -330,12 +351,17 @@ GLOBAL_LIST_INIT(rcd_door_types, list(
 				playsound(loc, usesound, 50, 1)
 				qdel(A)
 				return TRUE
+			return FALSE
+		to_chat(user, "<span class='warning'>ERROR! Not enough matter in unit to deconstruct this airlock!</span>")
+		playsound(loc, 'sound/machines/click.ogg', 50, 1)
 		return FALSE
 
 	if(istype(A, /obj/structure/window)) // You mean the grille of course, do you?
 		A = locate(/obj/structure/grille) in A.loc
 	if(istype(A, /obj/structure/grille))
 		if(!checkResource(2, user))
+			to_chat(user, "<span class='warning'>ERROR! Not enough matter in unit to deconstruct this window!</span>")
+			playsound(loc, 'sound/machines/click.ogg', 50, 1)
 			return 0
 		to_chat(user, "Deconstructing window...")
 		playsound(loc, 'sound/machines/click.ogg', 50, 1)
@@ -367,6 +393,8 @@ GLOBAL_LIST_INIT(rcd_door_types, list(
 		if(locate(/obj/structure/grille) in A)
 			return 0 // We already have window
 		if(!checkResource(2, user))
+			to_chat(user, "<span class='warning'>ERROR! Not enough matter in unit to construct this window!</span>")
+			playsound(loc, 'sound/machines/click.ogg', 50, 1)
 			return 0
 		to_chat(user, "Constructing window...")
 		playsound(loc, 'sound/machines/click.ogg', 50, 1)
@@ -392,6 +420,9 @@ GLOBAL_LIST_INIT(rcd_door_types, list(
 		var/turf/AT = A
 		AT.ChangeTurf(/turf/simulated/floor/plating) // Platings go under windows.
 		return 1
+	to_chat(user, "<span class='warning'>ERROR! Location unsuitable for window construction!</span>")
+	playsound(loc, 'sound/machines/click.ogg', 50, 1)
+	return 0
 
 /obj/item/rcd/afterattack(atom/A, mob/user, proximity)
 	if(!proximity)
@@ -426,20 +457,24 @@ GLOBAL_LIST_INIT(rcd_door_types, list(
 /obj/item/rcd/proc/checkResource(amount, mob/user)
 	return matter >= amount
 
+/obj/item/rcd/borg
+	canRwall = 1
+	var/use_multiplier = 160
+
+/obj/item/rcd/borg/syndicate
+	use_multiplier = 80
+
 /obj/item/rcd/borg/useResource(amount, mob/user)
 	if(!isrobot(user))
 		return 0
 	var/mob/living/silicon/robot/R = user
-	return R.cell.use(amount * 160)
+	return R.cell.use(amount * use_multiplier)
 
 /obj/item/rcd/borg/checkResource(amount, mob/user)
 	if(!isrobot(user))
 		return 0
 	var/mob/living/silicon/robot/R = user
-	return R.cell.charge >= (amount * 160)
-
-/obj/item/rcd/borg
-	canRwall = 1
+	return R.cell.charge >= (amount * use_multiplier)
 
 /obj/item/rcd/proc/detonate_pulse()
 	audible_message("<span class='danger'><b>[src] begins to vibrate and \

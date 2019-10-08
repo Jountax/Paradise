@@ -238,6 +238,32 @@ proc/age2agedescription(age)
 		if(70 to INFINITY)	return "elderly"
 		else				return "unknown"
 
+/proc/set_criminal_status(mob/living/user, datum/data/record/target_records , criminal_status, comment, user_rank, list/authcard_access = list())
+	var/status = criminal_status
+	var/their_name = target_records.fields["name"]
+	var/their_rank = target_records.fields["rank"]
+	switch(criminal_status)
+		if("arrest")
+			status = "*Arrest*"
+		if("none")
+			status = "None"
+		if("execute")
+			if((access_magistrate in authcard_access) || (access_armory in authcard_access))
+				status = "*Execute*"
+				message_admins("[ADMIN_FULLMONTY(usr)] authorized <span class='warning'>EXECUTION</span> for [their_rank] [their_name], with comment: [comment]")
+			else
+				return 0
+		if("incarcerated")
+			status = "Incarcerated"
+		if("parolled")
+			status = "Parolled"
+		if("released")
+			status = "Released"
+	target_records.fields["criminal"] = status
+	log_admin("[key_name_admin(user)] set secstatus of [their_rank] [their_name] to [status], comment: [comment]")
+	target_records.fields["comments"] += "Set to [status] by [user.name] ([user_rank]) on [current_date_string] [station_time_timestamp()], comment: [comment]"
+	update_all_mob_security_hud()
+	return 1
 
 /*
 Proc for attack log creation, because really why not
@@ -268,12 +294,16 @@ This is always put in the attack log.
 	if(!isnull(custom_level))
 		loglevel = custom_level
 	else if(istype(target))
-		if(isLivingSSD(target))  // Attacks on SSDs are shown to admins with any log level except ATKLOG_NONE
-			loglevel = ATKLOG_FEW
-		else if(istype(user) && !user.ckey && !target.ckey) // Attacks between NPCs are only shown to admins with ATKLOG_ALL
+		if(istype(user) && !user.ckey && !target.ckey) // Attacks between NPCs are only shown to admins with ATKLOG_ALL
 			loglevel = ATKLOG_ALL
-		else if(!target.ckey) // Attacks by players on NPCs are only shown to admins with ATKLOG_ALL or ATKLOG_ALMOSTALL
+		else if(!user.ckey || !target.ckey || (user.ckey == target.ckey)) // Player v NPC combat is de-prioritized. Also no self-harm, nobody cares
 			loglevel = ATKLOG_ALMOSTALL
+		else
+			var/area/A = get_area(target)
+			if(A && A.hide_attacklogs)
+				loglevel = ATKLOG_ALMOSTALL
+	if(isLivingSSD(target))  // Attacks on SSDs are shown to admins with any log level except ATKLOG_NONE. Overrides custom level
+		loglevel = ATKLOG_FEW
 
 	msg_admin_attack("[key_name_admin(user)] vs [key_name_admin(target)]: [what_done]", loglevel)
 
@@ -372,6 +402,27 @@ This is always put in the attack log.
 	if(progress)
 		qdel(progbar)
 
+#define DOAFTERONCE_MAGIC "Magic~~"
+GLOBAL_LIST_INIT(do_after_once_tracker, list())
+/proc/do_after_once(mob/user, delay, needhand = 1, atom/target = null, progress = 1, attempt_cancel_message = "Attempt cancelled.")
+	if(!user || !target)
+		return
+
+	var/cache_key = "[user.UID()][target.UID()]"
+	if(GLOB.do_after_once_tracker[cache_key])
+		GLOB.do_after_once_tracker[cache_key] = DOAFTERONCE_MAGIC
+		to_chat(user, "<span class='warning'>[attempt_cancel_message]</span>")
+		return FALSE
+	GLOB.do_after_once_tracker[cache_key] = TRUE
+	. = do_after(user, delay, needhand, target, progress, extra_checks = CALLBACK(GLOBAL_PROC, .proc/do_after_once_checks, cache_key))
+	GLOB.do_after_once_tracker[cache_key] = FALSE
+
+/proc/do_after_once_checks(cache_key)
+	if(GLOB.do_after_once_tracker[cache_key] && GLOB.do_after_once_tracker[cache_key] == DOAFTERONCE_MAGIC)
+		GLOB.do_after_once_tracker[cache_key] = FALSE
+		return FALSE
+	return TRUE
+
 /proc/is_species(A, species_datum)
 	. = FALSE
 	if(ishuman(A))
@@ -444,7 +495,7 @@ This is always put in the attack log.
 	to_chat(user, "Name = <b>[M.name]</b>; Real_name = [M.real_name]; Mind_name = [M.mind?"[M.mind.name]":""]; Key = <b>[M.key]</b>;")
 	to_chat(user, "Location = [location_description];")
 	to_chat(user, "[special_role_description]")
-	to_chat(user, "(<a href='?src=[usr.UID()];priv_msg=[M.UID()]'>PM</a>) ([ADMIN_PP(M,"PP")]) ([ADMIN_VV(M,"VV")]) ([ADMIN_SM(M,"SM")]) ([ADMIN_FLW(M,"FLW")]) (<A HREF='?_src_=holder;secretsadmin=check_antagonist'>CA</A>)")
+	to_chat(user, "(<a href='?src=[usr.UID()];priv_msg=[M.client ? M.client.UID(): null]'>PM</a>) ([ADMIN_PP(M,"PP")]) ([ADMIN_VV(M,"VV")]) ([ADMIN_TP(M,"TP")]) ([ADMIN_SM(M,"SM")]) ([ADMIN_FLW(M,"FLW")])")
 
 // Gets the first mob contained in an atom, and warns the user if there's not exactly one
 /proc/get_mob_in_atom_with_warning(atom/A, mob/user = usr)
@@ -503,3 +554,25 @@ This is always put in the attack log.
 		viewX = text2num(viewrangelist[1])
 		viewY = text2num(viewrangelist[2])
 	return list(viewX, viewY)
+
+//Used in chemical_mob_spawn. Generates a random mob based on a given gold_core_spawnable value.
+/proc/create_random_mob(spawn_location, mob_class = HOSTILE_SPAWN)
+	var/static/list/mob_spawn_meancritters = list() // list of possible hostile mobs
+	var/static/list/mob_spawn_nicecritters = list() // and possible friendly mobs
+
+	if(mob_spawn_meancritters.len <= 0 || mob_spawn_nicecritters.len <= 0)
+		for(var/T in typesof(/mob/living/simple_animal))
+			var/mob/living/simple_animal/SA = T
+			switch(initial(SA.gold_core_spawnable))
+				if(HOSTILE_SPAWN)
+					mob_spawn_meancritters += T
+				if(FRIENDLY_SPAWN)
+					mob_spawn_nicecritters += T
+
+	var/chosen
+	if(mob_class == FRIENDLY_SPAWN)
+		chosen = pick(mob_spawn_nicecritters)
+	else
+		chosen = pick(mob_spawn_meancritters)
+	var/mob/living/simple_animal/C = new chosen(spawn_location)
+	return C

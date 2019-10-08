@@ -20,13 +20,36 @@
 	var/list/linkedmist = list() //Used to keep track of created mist
 	var/deep_water = FALSE		//set to 1 to drown even standing people
 
+/obj/machinery/poolcontroller/invisible
+	invisibility = INVISIBILITY_MAXIMUM
+	name = "Water Controller"
+	desc = "An invisible water controller. Players shouldn't see this."
 
-/obj/machinery/poolcontroller/New() //This proc automatically happens on world start
+/obj/machinery/poolcontroller/invisible/sea
+	name = "Sea Controller"
+	desc = "A controller for the underwater portion of the sea. Players shouldn't see this."
+	deep_water = TRUE	
+
+/obj/machinery/poolcontroller/Initialize(mapload) 
+	var/contents_loop = linked_area 
 	if(!linked_area)
-		for(var/turf/simulated/floor/beach/water/W in range(srange,src)) //Search for /turf/simulated/floor/beach/water in the range of var/srange
-			linkedturfs += W //Add found pool turfs to the central list.
-			W.linkedcontroller = src // And add the linked controller to itself.
-	..() //Changed to call parent as per MarkvA's recommendation
+		contents_loop = range(srange, src)
+
+	for(var/turf/T in contents_loop)
+		if(istype(T, /turf/simulated/floor/beach/water))
+			var/turf/simulated/floor/beach/water/W = T
+			W.linkedcontroller = src 
+			linkedturfs += T
+		else if(istype(T, /turf/unsimulated/beach/water))
+			var/turf/unsimulated/beach/water/W = T
+			W.linkedcontroller = src 
+			linkedturfs += T
+
+	. = ..()
+
+/obj/machinery/poolcontroller/invisible/Initialize(mapload)
+	linked_area = get_area(src)
+	. = ..()
 
 /obj/machinery/poolcontroller/emag_act(user as mob) //Emag_act, this is called when it is hit with a cryptographic sequencer.
 	if(!emagged) //If it is not already emagged, emag it.
@@ -62,7 +85,7 @@
 			continue
 		handleTemp(M)	//handles pool temp effects on the swimmers
 		if(ishuman(M)) //Only human types will drown, to keep things simple for non-human mobs that live in the water
-			handleDrowning(M)		
+			handleDrowning(M)
 
 /obj/machinery/poolcontroller/proc/cleanPool()
 	for(var/obj/effect/decal/cleanable/decal in decalinpool)		//Cleans up cleanable decals like blood and such
@@ -79,11 +102,11 @@
 			to_chat(M, "<span class='danger'>The water is searing hot!</span>")
 
 		if(WARM) //Warm the mob.
-			if(prob(50)) //inform the mob of warm water half the time
+			if(prob(5)) //inform the mob of warm water occasionally
 				to_chat(M, "<span class='warning'>The water is quite warm.</span>")//Inform the mob it's warm water.
 
 		if(COOL) //Cool the mob.
-			if(prob(50)) //inform the mob of cold water half the time
+			if(prob(5)) //inform the mob of cold water occasionally
 				to_chat(M, "<span class='warning'>The water is chilly.</span>")//Inform the mob it's chilly water.
 
 		if(FRIGID) //YOU'RE AS COLD AS ICE
@@ -93,7 +116,7 @@
 	if(!drownee)
 		return
 
-	if(drownee && (drownee.lying || deep_water)) //Mob lying down or water is deep (determined by controller)
+	if(drownee && ((drownee.lying && !drownee.player_logged) || deep_water)) //Mob lying down and not SSD or water is deep (determined by controller)
 		if(drownee.internal)
 			return //Has internals, no drowning
 		if((NO_BREATHE in drownee.dna.species.species_traits) || (BREATHLESS in drownee.mutations))
@@ -189,20 +212,6 @@
 			mistoff()
 
 	return 1
-
-/obj/machinery/poolcontroller/seacontroller
-	invisibility = 101
-	unacidable = 1
-	name = "Sea Controller"
-	desc = "A controller for the underwater portion of the sea. Players shouldn't see this."
-	deep_water = TRUE		//deep sea is deep water
-
-/obj/machinery/poolcontroller/seacontroller/Initialize()
-	linked_area = get_area(src)
-	for(var/turf/unsimulated/beach/water/W in linked_area)
-		linkedturfs += W //Add found pool turfs to the central list.
-		W.linkedcontroller = src // And add the linked controller to itself.
-	..()
 
 #undef FRIGID
 #undef COOL

@@ -15,7 +15,9 @@
 	anchored = 1
 	density = 1
 	on_blueprints = TRUE
-	armor = list(melee = 25, bullet = 10, laser = 10, energy = 100, bomb = 0, bio = 100, rad = 100)
+	armor = list("melee" = 25, "bullet" = 10, "laser" = 10, "energy" = 100, "bomb" = 0, "bio" = 100, "rad" = 100, "fire" = 90, "acid" = 30)
+	max_integrity = 200
+	resistance_flags = FIRE_PROOF
 	var/datum/gas_mixture/air_contents	// internal reservoir
 	var/mode = 1	// item mode 0=off 1=charging 2=charged
 	var/flush = 0	// true if flush handle is pulled
@@ -46,7 +48,7 @@
 		T.nicely_link_to_other_stuff(src)
 
 //When the disposalsoutlet is forcefully moved. Due to meteorshot (not the recall spell)
-/obj/machinery/disposal/Moved(atom/OldLoc, Dir) 
+/obj/machinery/disposal/Moved(atom/OldLoc, Dir)
 	. = ..()
 	eject()
 	var/ptype = istype(src, /obj/machinery/disposal/deliveryChute) ? PIPE_DISPOSALS_CHUTE : PIPE_DISPOSALS_BIN //Check what disposaltype it is
@@ -70,6 +72,11 @@
 	if(trunk)
 		trunk.remove_trunk_links()
 	return ..()
+
+/obj/machinery/disposal/singularity_pull(S, current_size)
+	..()
+	if(current_size >= STAGE_FIVE)
+		deconstruct()
 
 /obj/machinery/disposal/Initialize()
 	// this will get a copy of the air turf and take a SEND PRESSURE amount of air from it
@@ -162,7 +169,7 @@
 	if(!user.drop_item())
 		return
 	if(I)
-		I.loc = src
+		I.forceMove(src)
 
 	to_chat(user, "You place \the [I] into the [src].")
 	for(var/mob/M in viewers(src))
@@ -175,7 +182,7 @@
 // mouse drop another mob or self
 //
 /obj/machinery/disposal/MouseDrop_T(mob/target, mob/user)
-	if(!istype(target) || target.buckled || get_dist(user, src) > 1 || get_dist(user, target) > 1 || user.stat || istype(user, /mob/living/silicon/ai))
+	if(!istype(target) || target.buckled || target.has_buckled_mobs() || get_dist(user, src) > 1 || get_dist(user, target) > 1 || user.stat || istype(user, /mob/living/silicon/ai))
 		return
 	if(isanimal(user) && target != user) return //animals cannot put mobs other than themselves into disposal
 	src.add_fingerprint(user)
@@ -246,7 +253,7 @@
 		return
 
 	// Clumsy folks can only flush it.
-	if(user.IsAdvancedToolUser(1))
+	if(user.IsAdvancedToolUser())
 		ui_interact(user)
 	else
 		flush = !flush
@@ -417,6 +424,9 @@
 	for(var/mob/living/silicon/robot/drone/D in src)
 		wrapcheck = 1
 
+	for(var/mob/living/silicon/robot/syndicate/saboteur/R in src)
+		wrapcheck = 1
+
 	for(var/obj/item/smallDelivery/O in src)
 		wrapcheck = 1
 
@@ -461,7 +471,7 @@
 
 			AM.loc = src.loc
 			AM.pipe_eject(0)
-			if(!istype(AM,/mob/living/silicon/robot/drone)) //Poor drones kept smashing windows and taking system damage being fired out of disposals. ~Z
+			if(!istype(AM, /mob/living/silicon/robot/drone) && !istype(AM, /mob/living/silicon/robot/syndicate/saboteur)) //Poor drones kept smashing windows and taking system damage being fired out of disposals. ~Z
 				spawn(1)
 					if(AM)
 						AM.throw_at(target, 5, 1)
@@ -502,6 +512,7 @@
 
 /obj/structure/disposalholder
 	invisibility = 101
+	resistance_flags = INDESTRUCTIBLE | LAVA_PROOF | FIRE_PROOF | UNACIDABLE | ACID_PROOF
 	var/datum/gas_mixture/gas = null	// gas used to flush, will appear at exit point
 	var/active = 0	// true if the holder is moving, otherwise inactive
 	dir = 0
@@ -523,7 +534,7 @@
 	//Check for any living mobs trigger hasmob.
 	//hasmob effects whether the package goes to cargo or its tagged destination.
 	for(var/mob/living/M in D)
-		if(M && M.stat != 2 && !istype(M,/mob/living/silicon/robot/drone))
+		if(M && M.stat != 2 && !istype(M, /mob/living/silicon/robot/drone) && !istype(M, /mob/living/silicon/robot/syndicate/saboteur))
 			hasmob = 1
 
 	//Checks 1 contents level deep. This means that players can be sent through disposals...
@@ -531,13 +542,14 @@
 	for(var/obj/O in D)
 		if(O.contents)
 			for(var/mob/living/M in O.contents)
-				if(M && M.stat != 2 && !istype(M,/mob/living/silicon/robot/drone))
+				if(M && M.stat != 2 && !istype(M,/mob/living/silicon/robot/drone) && !istype(M, /mob/living/silicon/robot/syndicate/saboteur))
 					hasmob = 1
 
 	// now everything inside the disposal gets put into the holder
 	// note AM since can contain mobs or objs
 	for(var/atom/movable/AM in D)
 		AM.loc = src
+		SEND_SIGNAL(AM, COMSIG_MOVABLE_DISPOSING, src, D)
 		if(istype(AM, /mob/living/carbon/human))
 			var/mob/living/carbon/human/H = AM
 			if(FAT in H.mutations)		// is a human and fat?
@@ -552,6 +564,9 @@
 		if(istype(AM, /mob/living/silicon/robot/drone))
 			var/mob/living/silicon/robot/drone/drone = AM
 			destinationTag = drone.mail_destination
+		if(istype(AM, /mob/living/silicon/robot/syndicate/saboteur))
+			var/mob/living/silicon/robot/syndicate/saboteur/S = AM
+			destinationTag = S.mail_destination
 		if(istype(AM, /obj/item/shippingPackage) && !hasmob)
 			var/obj/item/shippingPackage/sp = AM
 			if(sp.sealed)	//only sealed packages get delivered to their intended destination
@@ -672,8 +687,10 @@
 	var/dpdir = 0		// bitmask of pipe directions
 	dir = 0				// dir will contain dominant direction for junction pipes
 	var/health = 10 	// health points 0-10
-	armor = list("melee" = 25, "bullet" = 10, "laser" = 10, "energy" = 100, "bomb" = 0, "bio" = 100, "rad" = 100)
-	layer = 2.3			// slightly lower than wires and other pipes
+	max_integrity = 200
+	armor = list("melee" = 25, "bullet" = 10, "laser" = 10, "energy" = 100, "bomb" = 0, "bio" = 100, "rad" = 100, "fire" = 90, "acid" = 30)
+	damage_deflection = 10
+	layer = DISPOSAL_PIPE_LAYER				// slightly lower than wires and other pipes
 	var/base_icon_state	// initial icon state on map
 
 	// new pipe, set the icon_state as on map
@@ -685,11 +702,9 @@
 // pipe is deleted
 // ensure if holder is present, it is expelled
 /obj/structure/disposalpipe/Destroy()
-	var/obj/structure/disposalholder/H = locate() in src
-	if(H)
-		// holder was present
+	for(var/obj/structure/disposalholder/H in contents)
 		H.active = 0
-		var/turf/T = src.loc
+		var/turf/T = loc
 		if(T.density)
 			// deleting pipe is inside a dense turf (wall)
 			// this is unlikely, but just dump out everything into the turf in case
@@ -702,13 +717,13 @@
 			return
 
 		// otherwise, do normal expel from turf
-		if(H)
-			expel(H, T, 0)
+		expel(H, T, 0)
 	return ..()
 
 /obj/structure/disposalpipe/singularity_pull(S, current_size)
+	..()
 	if(current_size >= STAGE_FIVE)
-		qdel(src)
+		deconstruct()
 
 // returns the direction of the next pipe object, given the entrance dir
 // by default, returns the bitmask of remaining directions
@@ -814,20 +829,18 @@
 			H.vent_gas(T)	// all gas vent to turf
 			qdel(H)
 
-	return
-
 // call to break the pipe
 // will expel any holder inside at the time
 // then delete the pipe
 // remains : set to leave broken pipe pieces in place
-/obj/structure/disposalpipe/proc/broken(var/remains = 0)
+/obj/structure/disposalpipe/proc/broken(remains = 0)
 	if(remains)
 		for(var/D in cardinal)
 			if(D & dpdir)
 				var/obj/structure/disposalpipe/broken/P = new(src.loc)
-				P.dir = D
+				P.setDir(D)
 
-	src.invisibility = 101	// make invisible (since we won't delete the pipe immediately)
+	invisibility = 101	// make invisible (since we won't delete the pipe immediately)
 	var/obj/structure/disposalholder/H = locate() in src
 	if(H)
 		// holder was present
@@ -850,23 +863,17 @@
 	spawn(2)	// delete pipe after 2 ticks to ensure expel proc finished
 		qdel(src)
 
-
 // pipe affected by explosion
 /obj/structure/disposalpipe/ex_act(severity)
-
 	switch(severity)
-		if(1.0)
+		if(1)
 			broken(0)
-			return
-		if(2.0)
-			health -= rand(5,15)
+		if(2)
+			health -= rand(5, 15)
 			healthcheck()
-			return
-		if(3.0)
-			health -= rand(0,15)
+		if(3)
+			health -= rand(0, 15)
 			healthcheck()
-			return
-
 
 // test health for brokenness
 /obj/structure/disposalpipe/proc/healthcheck()
@@ -1032,6 +1039,7 @@
 
 		if(O.currTag > 0)// Tag set
 			sortType = O.currTag
+			name = GLOB.TAGGERLOCATIONS[O.currTag]
 			playsound(src.loc, 'sound/machines/twobeep.ogg', 100, 1)
 			var/tag = uppertext(GLOB.TAGGERLOCATIONS[O.currTag])
 			to_chat(user, "<span class='notice'>Changed filter to [tag]</span>")
@@ -1220,24 +1228,27 @@
 	// if not entering from disposal bin,
 	// transfer to linked object (outlet or bin)
 
-/obj/structure/disposalpipe/trunk/transfer(var/obj/structure/disposalholder/H)
-
+/obj/structure/disposalpipe/trunk/transfer(obj/structure/disposalholder/H)
+	if(!H)
+		return
 	if(H.dir == DOWN)		// we just entered from a disposer
 		return ..()		// so do base transfer proc
 	// otherwise, go to the linked object
-	if(linked)
-		var/obj/structure/disposaloutlet/O = linked
-		if(istype(O) && (H))
-			O.expel(H)	// expel at outlet
-		else
-			var/obj/machinery/disposal/D = linked
-			if(H)
-				D.expel(H)	// expel at disposal
-	else
-		if(H)
-			src.expel(H, src.loc, 0)	// expel at turf
-	return null
-
+	if(!linked)
+		expel(H, loc, FALSE)	// expel at turf
+	else if(istype(linked, /obj/structure/disposaloutlet))
+		var/obj/structure/disposaloutlet/DO = linked
+		for(var/atom/movable/AM in H)
+			AM.forceMove(DO)
+		qdel(H)
+		H.vent_gas(loc)
+		DO.expel()
+	else if(istype(linked, /obj/machinery/disposal))
+		var/obj/machinery/disposal/D = linked
+		H.forceMove(D)
+		D.expel(H)	// expel at disposal
+	else //just in case
+		expel(H, loc, FALSE)
 	// nextdir
 
 /obj/structure/disposalpipe/trunk/nextdir(var/fromdir)
@@ -1283,24 +1294,29 @@
 		if(T)
 			T.nicely_link_to_other_stuff(src)
 
-	// expel the contents of the holder object, then delete it
-	// called when the holder exits the outlet
-/obj/structure/disposaloutlet/proc/expel(var/obj/structure/disposalholder/H, animation = 1)
+/obj/structure/disposaloutlet/Destroy()
+	if(linkedtrunk)
+		linkedtrunk.remove_trunk_links()
+	expel(FALSE)
+	return ..()
+
+
+// expel the contents of the outlet
+/obj/structure/disposaloutlet/proc/expel(animation = TRUE)
 	if(animation)
 		flick("outlet-open", src)
 		playsound(src, 'sound/machines/warning-buzzer.ogg', 50, 0, 0)
 		sleep(20)	//wait until correct animation frame
 		playsound(src, 'sound/machines/hiss.ogg', 50, 0, 0)
-	if(H)
-		for(var/atom/movable/AM in H)
-			AM.forceMove(loc)
-			AM.pipe_eject(dir)
-			if(!istype(AM,/mob/living/silicon/robot/drone)) //Drones keep smashing windows from being fired out of chutes. Bad for the station. ~Z
-				spawn(5)
-					if(AM)
-						AM.throw_at(target, 3, 1)
-		H.vent_gas(src.loc)
-		qdel(H)
+	for(var/atom/movable/AM in contents)
+		AM.forceMove(loc)
+		AM.pipe_eject(dir)
+		if(istype(AM,/mob/living/silicon/robot/drone) || istype(AM, /mob/living/silicon/robot/syndicate/saboteur)) //Drones keep smashing windows from being fired out of chutes. Bad for the station. ~Z
+			return
+		spawn(5)
+			if(QDELETED(AM))
+				return
+			AM.throw_at(target, 3, 1)
 
 
 /obj/structure/disposaloutlet/attackby(var/obj/item/I, var/mob/user, params)
@@ -1339,7 +1355,7 @@
 			return
 
 //When the disposalsoutlet is forcefully moved. Due to meteorshot or the recall item spell for instance
-/obj/structure/disposaloutlet/Moved(atom/OldLoc, Dir) 
+/obj/structure/disposaloutlet/Moved(atom/OldLoc, Dir)
 	. = ..()
 	var/turf/T = OldLoc
 	if(T.intact)
@@ -1355,11 +1371,6 @@
 	C.anchored = 0
 	C.density = 1
 	qdel(src)
-
-/obj/structure/disposaloutlet/Destroy()
-	if(linkedtrunk)
-		linkedtrunk.remove_trunk_links()
-	return ..()
 
 // called when movable is expelled from a disposal pipe or outlet
 // by default does nothing, override for special behaviour

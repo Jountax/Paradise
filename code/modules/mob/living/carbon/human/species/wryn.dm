@@ -39,7 +39,7 @@
 	clothing_flags = HAS_UNDERWEAR | HAS_UNDERSHIRT | HAS_SOCKS
 	dietflags = DIET_HERB		//bees feed off nectar, so bee people feed off plants too
 
-	oxy_mod = 0
+	dies_at_threshold = TRUE
 
 	reagent_tag = PROCESS_ORG
 	base_color = "#704300"
@@ -49,7 +49,7 @@
 	default_hair = "Antennae"
 
 
-/datum/species/wryn/handle_death(mob/living/carbon/human/H)
+/datum/species/wryn/handle_death(gibbed, mob/living/carbon/human/H)
 	for(var/mob/living/carbon/C in GLOB.living_mob_list)
 		if(C.get_int_organ(/obj/item/organ/internal/wryn/hivenode))
 			to_chat(C, "<span class='danger'><B>Your antennae tingle as you are overcome with pain...</B></span>")

@@ -31,6 +31,10 @@
 		new /obj/item/flashlight/flare(src)
 	new /obj/item/radio(src)
 
+/obj/item/storage/toolbox/emergency/old
+	name = "rusty red toolbox"
+	icon_state = "toolbox_red_old"
+
 /obj/item/storage/toolbox/mechanical
 	name = "mechanical toolbox"
 	icon_state = "blue"
@@ -47,6 +51,10 @@
 
 /obj/item/storage/toolbox/mechanical/greytide
 	flags = NODROP
+
+/obj/item/storage/toolbox/mechanical/old
+	name = "rusty blue toolbox"
+	icon_state = "toolbox_blue_old"
 
 /obj/item/storage/toolbox/electrical
 	name = "electrical toolbox"
@@ -86,15 +94,11 @@
 	new /obj/item/multitool(src)
 	new /obj/item/clothing/gloves/combat(src)
 
-
-/obj/item/storage/toolbox/syndicate/trapped
-	name = "suspicious looking toolbox"
-	desc = "Danger. Very robust. Has a small red marker by the handle."
-
-/obj/item/storage/toolbox/syndicate/trapped/New()
-	..()
-	new /obj/item/grenade/chem_grenade/explosion/mine_armed(src)
-
+/obj/item/storage/toolbox/fakesyndi
+	name = "suspicous looking toolbox"
+	icon_state = "syndicate"
+	item_state = "toolbox_syndi"
+	desc = "Danger. Very Robust. The paint is still wet."
 
 /obj/item/storage/toolbox/drone
 	name = "mechanical toolbox"
@@ -117,6 +121,7 @@
 	desc = "A huge brass box with several indentations in its surface."
 	icon_state = "brassbox"
 	item_state = null
+	resistance_flags = FIRE_PROOF | ACID_PROOF
 	w_class = WEIGHT_CLASS_HUGE
 	max_w_class = WEIGHT_CLASS_NORMAL
 	max_combined_w_class = 28
